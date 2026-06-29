@@ -1,24 +1,89 @@
 import time
 from epd2in9 import EPD_2in9_Portrait
 
+use_knots = False
+
+font = {
+    '0': ("01110", "10001", "10011", "10101", "11001", "10001", "01110"),
+    '1': ("00100", "01100", "00100", "00100", "00100", "00100", "01110"),
+    '2': ("01110", "10001", "00001", "00110", "01000", "10000", "11111"),
+    '3': ("01110", "10001", "00001", "00110", "00001", "10001", "01110"),
+    '4': ("00010", "00110", "01010", "10010", "11111", "00010", "00010"),
+    '5': ("11111", "10000", "11110", "00001", "00001", "10001", "01110"),
+    '6': ("00110", "01000", "10000", "11110", "10001", "10001", "01110"),
+    '7': ("11111", "00001", "00010", "00100", "01000", "01000", "01000"),
+    '8': ("01110", "10001", "10001", "01110", "10001", "10001", "01110"),
+    '9': ("01110", "10001", "10001", "01111", "00001", "00010", "01100"),
+    ':': ("00000", "00100", "00000", "00000", "00100", "00000", "00000"),
+    '-': ("00000", "00000", "00000", "11111", "00000", "00000", "00000"),
+    '.': ("00000", "00000", "00000", "00000", "00000", "00100", "00100"),
+    ' ': ("00000", "00000", "00000", "00000", "00000", "00000", "00000"),
+}
+
+def draw_large_text(epd, text, x, y, scale=2):
+    font_color = epd.black
+    background_color = epd.white
+
+    # clear background
+    epd.fill_rect(x, y, len(str(text)) * (6 * scale), 7 * scale, background_color)
+
+    # draw text
+    for index, char in enumerate(str(text)):
+        glyph = font.get(char)
+        if glyph is None:
+            continue
+
+        for row, line in enumerate(glyph):
+            for col, pixel in enumerate(line):
+                if pixel == '1':
+                    epd.fill_rect(
+                        x + index * (6 * scale) + col * scale,
+                        y + row * scale,
+                        scale,
+                        scale,
+                        font_color,
+                    )
+
+
 if __name__=='__main__':
     start_time = time.ticks_ms()
 
     epd = EPD_2in9_Portrait()
     epd.Clear(epd.black)
+
+    x_title = 0
+    y_title = 0
+    y_space = 60
+    x_unit = 97
+    y_unit = 36
+    x_value = 2
+    y_value = 15
     
     epd.fill(epd.white)
-    epd.text("Speed", 0, 0, epd.black)
-    epd.text("Peak speed", 0, 80, epd.black)
-    epd.text("Distance", 0, 160, epd.black)
-    epd.text("Time", 0, 240, epd.black)
+    epd.text("Speed", x_title, y_title + 0*y_space, epd.black)
+    draw_large_text(epd, " 5.8", x_value, y_value, scale=4)
+    epd.text("kt" if use_knots else "km/h", x_unit, y_unit + 0*y_space, epd.black)
+
+    epd.text("Peak speed", x_title, y_title + 1*y_space, epd.black)
+    draw_large_text(epd, "12.3", x_value, y_value + y_space, scale=4)
+    epd.text("kt" if use_knots else "km/h", x_unit, y_unit + 1*y_space, epd.black)
+
+    epd.text("Distance", x_title, y_title + 2*y_space, epd.black)
+    draw_large_text(epd, " 9.6", x_value, y_value + 2*y_space, scale=4)
+    epd.text("nm" if use_knots else "km", x_unit, y_unit + 2*y_space, epd.black)
+
+    epd.text("Time", x_title, y_title + 3*y_space, epd.black)
+    draw_large_text(epd, '--:--', x_value, y_value + 3*y_space, scale=4)
+
+    epd.text("Clock", x_title, y_title + 4*y_space, epd.black)
+    draw_large_text(epd, '--:--', x_value, y_value + 4*y_space, scale=4)
     epd.display(epd.buffer)
 
-    for i in range(0, 10):
+    for i in range(0, 5):
         uptime_s = int(time.ticks_diff(time.ticks_ms(), start_time) / 1000)
+        time_str = '00:' + str(uptime_s // 10) + str(uptime_s % 10)
 
-        epd.fill_rect(40, 270, 40, 10, epd.black)
-        epd.text(str(uptime_s), 60, 270, epd.white)
+        draw_large_text(epd, time_str, x_value, y_value + 3*y_space, scale=4)
         epd.display_Partial(epd.buffer)
 
         epd.delay_ms(1000)
